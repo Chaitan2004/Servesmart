@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='studentdashboard.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <header class="header">
+    <nav>
+      <a href="{{ url_for('home') }}">Home</a>
+      <a href="#">Card History</a>
+      <a href="#">Card Registration</a>
+      <a href="#">Generated QRs</a>
+    </nav>
+    <div class="user-info">
+    <div class="dropdown">
+        <button>{{ session['username'] }}</button>
+        <div class="dropdown-content">
+            <div class="details">
+                <span>Cards: {{ session['cards'] }}</span>
+                <span>Username: {{ session['username'] }}</span>
+            </div>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+    </div>
+</div>
+
+  </header>
+
+  <main class="content">
+    <div class="banner">
+      <!-- Banner content can be added here -->
+      Your Banner Here
+    </div>
+
+    <h2>Explore Food Counters</h2>
+
+    <div class="button-container">
+      <a href="{{ url_for('commondininghall') }}" class="big-button">Common Dining Hall</a>
+    </div>
+  </main>
+
+</body>
+</html>

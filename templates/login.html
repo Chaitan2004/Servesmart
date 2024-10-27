@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ServeSmart</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header>
+    <h1>ServeSmart</h1>
+  </header>
+
+  <main>
+    <section id="login-section">
+      <h2>Login</h2>
+      <!-- Form submission will be redirected to /submit route -->
+      <form id="login-form" action="/submit" method="POST">
+        <label for="username">Roll Number / Admin ID:</label>
+        <input type="text" id="username" name="username" placeholder="Enter your Roll Number / Admin ID" required>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" placeholder="Enter your password" required>
+        <button type="submit" class="button">Login</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

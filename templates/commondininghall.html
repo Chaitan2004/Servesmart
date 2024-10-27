@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Common Dining Hall</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='commondininghall.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Common Dining Hall</h1>
+    </header>
+
+    <main>
+        <section class="meal-section">
+            <h2>Lunch</h2>
+            <form action="{{ url_for('generate_qr') }}" method="post">
+                <input type="hidden" name="meal" value="lunch">
+                <button type="submit" class="generate-qr">Generate QR</button>
+            </form>
+            {% if qr_generated and meal == 'lunch' %}
+                <p class="status-message success">QR is successfully generated.</p>
+            {% endif %}
+        </section>
+
+        <section class="meal-section">
+            <h2>Dinner</h2>
+            <form action="{{ url_for('generate_qr') }}" method="post">
+                <input type="hidden" name="meal" value="dinner">
+                <button type="submit" class="generate-qr">Generate QR</button>
+            </form>
+            {% if qr_generated and meal == 'dinner' %}
+                <p class="status-message success">QR is successfully generated.</p>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>
