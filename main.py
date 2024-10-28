@@ -1,9 +1,9 @@
-from flask import Flask, render_template, request, redirect, session, url_for
+from flask import Flask, render_template, request, redirect, session, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 import segno
 import uuid
 import os
-import datetime
+from datetime import datetime, timedelta, time
 import base64
 from io import BytesIO
 
@@ -97,30 +97,84 @@ def commondininghall():
     if 'username' not in session:
         # If not logged in, redirect to the login page
         return redirect(url_for('index'))
-    # If logged in, render the student dashboard
-    return render_template('commondininghall.html')
-
-
+    current_date = datetime.today().date()
+    date_options = [
+        current_date,
+        current_date + timedelta(days=1),
+        current_date + timedelta(days=2)
+    ]
+    return render_template('commondininghall.html', current_date=current_date, date_options=date_options)
 @app.route('/generate_qr', methods=['POST'])
 def generate_qr():
-    meal_type = request.form.get('meal')  # e.g., "breakfast" or "dinner"
-    username = session.get('username')  # Use username from session
+    meal = request.form.get('meal')
+    meal_date = request.form.get('meal_date')
+    username = session.get('username')
+    qr_generated = False
 
-    if meal_type and username:
-        # Generate a unique QR code
+    # Convert the selected meal_date to a datetime object
+    meal_date_obj = datetime.strptime(meal_date, "%Y-%m-%d").date() if meal_date else None
+    if not meal_date_obj:
+        flash("Please select a valid date.", "error")
+        return redirect(url_for('commondininghall'))
+
+    # Define meal times
+    lunch_time = time(12, 0)  # 12:00 PM
+    dinner_time = time(19, 0)  # 7:00 PM
+    current_time = datetime.now()
+
+    # Ensure the selected date is within the next two days
+    if meal_date_obj > current_time.date() + timedelta(days=2):
+        flash("QR code generation is only available up to two days in advance.", "error")
+        return redirect(url_for('commondininghall'))
+
+    # Calculate cut-off times for QR code generation
+    if meal == 'lunch':
+        cutoff_time = datetime.combine(meal_date_obj, lunch_time) - timedelta(hours=4)
+    elif meal == 'dinner':
+        cutoff_time = datetime.combine(meal_date_obj, dinner_time) - timedelta(hours=4)
+    else:
+        flash("Invalid meal type.", "error")
+        return redirect(url_for('commondininghall'))
+
+    # Restrict QR generation if past the cut-off time
+    if current_time > cutoff_time:
+        flash(f"QR code generation for {meal} on {meal_date} is closed.", "error")
+        return redirect(url_for('commondininghall'))
+
+    # Check if a QR code has already been generated for this meal and date
+    existing_meal = Meals.query.filter_by(username=username, meal_type=meal, date=meal_date_obj).first()
+    if existing_meal:
+        flash("You have already generated a QR code for this meal on the selected date.", "error")
+        return redirect(url_for('commondininghall'))
+
+    # Proceed if within the allowed time and date
+    if meal and username:
         unique_id = str(uuid.uuid4())
         qr = segno.make(unique_id)
         img_buffer = BytesIO()
-        qr.save(img_buffer, kind='png', scale=10)  # Increase scale for higher resolution
+        qr.save(img_buffer, kind='png', scale=10)
         img_binary = img_buffer.getvalue()
 
-        # Insert new meal record for the student
-        new_meal = Meals(username=username, qrcode=img_binary, meal_type=meal_type, date=datetime.date.today())
+        new_meal = Meals(username=username, qrcode=img_binary, meal_type=meal, date=meal_date_obj)
         db.session.add(new_meal)
         db.session.commit()
 
-    return render_template('commondininghall.html', qr_generated=True, meal_type=meal_type)
+        qr_generated = True
+        session['qr_generated'] = qr_generated
+        session['meal'] = meal
 
+    # Clear session qr_generated status for fresh submission capability
+    session.pop('qr_generated', None)
+
+    current_date = datetime.today().date()
+    date_options = [
+        current_date,
+        current_date + timedelta(days=1),
+        current_date + timedelta(days=2)
+    ]
+
+    # Pass current date to avoid shrinking of date options on reload
+    return render_template('commondininghall.html', qr_generated=qr_generated, meal=meal, current_date=current_time.date(), date_options=date_options)
 @app.route('/generated_qrs')
 def generated_qrs():
     if 'username' not in session:

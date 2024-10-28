@@ -5,21 +5,64 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Common Dining Hall</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='commondininghall.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+
 </head>
 <body>
-    <header>
-        <h1>Common Dining Hall</h1>
+  <!-- Header section without padding -->
+  <header class="header">
+      <nav>
+        <a href="{{ url_for('home') }}">Home</a>
+        <a href="#">Card History</a>
+        <a href="#">Card Registration</a>
+        <a href="{{ url_for('generated_qrs') }}">Generated QRs</a>
+      </nav>
+      <div class="user-info">
+        <div class="dropdown">
+          <button>Details</button>
+          <div class="dropdown-content">
+            <div class="details">
+              <span>Cards: {{ session['cards'] }}</span>
+              <span>Username: {{ session['username'] }}</span>
+            </div>
+            <a href="{{ url_for('logout') }}">Logout</a>
+          </div>
+        </div>
+      </div>
     </header>
 
+    <!-- Main content area -->
     <main>
+        <!-- Common Dining Hall title -->
+        <h1>Common Dining Hall</h1>
+
+        <!-- Flash messages section -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <p class="flash-message {{ category }}">{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- Meal sections -->
         <section class="meal-section">
             <h2>Lunch</h2>
             <form action="{{ url_for('generate_qr') }}" method="post">
                 <input type="hidden" name="meal" value="lunch">
+                <label for="meal_date_lunch">Select Date:</label>
+                <select name="meal_date" id="meal_date_lunch">
+                    {% for date in date_options %}
+                        <option value="{{ date }}">{{ date }}</option>
+                    {% endfor %}
+                </select>
                 <button type="submit" class="generate-qr">Generate QR</button>
             </form>
             {% if qr_generated and meal == 'lunch' %}
-                <p class="status-message success">QR is successfully generated.</p>
+                <p class="status-message success">QR code successfully generated.</p>
+                <p>Click <a href="{{ url_for('generated_qrs') }}">here</a> to view your generated QR codes.</p>
             {% endif %}
         </section>
 
@@ -27,10 +70,17 @@
             <h2>Dinner</h2>
             <form action="{{ url_for('generate_qr') }}" method="post">
                 <input type="hidden" name="meal" value="dinner">
+                <label for="meal_date_dinner">Select Date:</label>
+                <select name="meal_date" id="meal_date_dinner">
+                    {% for date in date_options %}
+                        <option value="{{ date }}">{{ date }}</option>
+                    {% endfor %}
+                </select>
                 <button type="submit" class="generate-qr">Generate QR</button>
             </form>
             {% if qr_generated and meal == 'dinner' %}
-                <p class="status-message success">QR is successfully generated.</p>
+                <p class="status-message success">QR code successfully generated.</p>
+                <p>Click <a href="{{ url_for('generated_qrs') }}">here</a> to view your generated QR codes.</p>
             {% endif %}
         </section>
     </main>

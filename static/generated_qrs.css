@@ -1,47 +1,107 @@
 /* Styles for the QR Codes Page */
 body {
-    font-family: 'Roboto', sans-serif;
+    font-family: 'Roboto', sans-serif;    background-color: #f4f4f4;
+    margin: 0;
 }
 
-.header {
-    background-color: #f8f9fa;
-    padding: 10px 20px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.header nav a {
-    margin-right: 20px;
-    text-decoration: none;
-    color: #007bff;
-}
-
-.user-info {
-    position: relative;
-}
-
-.dropdown {
-    cursor: pointer;
-}
-
-.dropdown-content {
-    display: none;
-    position: absolute;
-    background-color: #f9f9f9;
-    min-width: 160px;
-    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-    z-index: 1;
-}
-
-.dropdown:hover .dropdown-content {
-    display: block;
-}
-
-.content {
+/* Apply padding to specific content sections instead of the entire body */
+main {
     padding: 20px;
 }
 
+/* Header styling */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #2c3e50;
+    color: white;
+    padding: 15px;
+}
+
+.header a {
+    color: white;
+    text-decoration: none;
+    margin: 0 15px;
+    font-weight: 500;
+}
+
+/* User info container */
+.user-info {
+    display: flex;
+    align-items: center;
+}
+
+/* Dropdown styling */
+.dropdown {
+    position: relative;
+    display: inline-block;
+    margin-left: 15px;
+}
+
+/* Style for the dropdown button */
+.dropdown button {
+    background-color: #34495e;
+    color: white;
+    padding: 10px 20px;
+    font-size: 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Roboto', sans-serif;
+    transition: background-color 0.3s ease;
+}
+
+.dropdown button:hover {
+    background-color: #1f2a38;
+}
+
+/* Style for the dropdown content */
+.dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: white;
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+    min-width: 250px;
+    border-radius: 4px;
+    overflow: hidden;
+    z-index: 1;
+    padding: 10px;
+}
+
+/* Styling for user details inside the dropdown */
+.dropdown-content .details {
+    margin-bottom: 10px;
+    padding: 5px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.dropdown-content .details span {
+    display: block;
+    color: #2c3e50;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+/* Styling for logout link */
+.dropdown-content a {
+    color: #2c3e50;
+    padding: 8px 0;
+    text-decoration: none;
+    display: block;
+    font-family: 'Roboto', sans-serif;
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-content a:hover {
+    background-color: #f1f1f1;
+}
+
+/* Display dropdown on hover */
+.dropdown:hover .dropdown-content {
+    display: block;
+}
 h1 {
     margin-bottom: 20px;
 }

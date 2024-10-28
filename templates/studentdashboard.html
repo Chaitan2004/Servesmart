@@ -6,6 +6,78 @@
   <title>Student Dashboard</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='studentdashboard.css') }}">
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0; /* Reset body margin */
+      font-family: 'Roboto', sans-serif;
+    }
+
+    .carousel {
+      position: relative;
+      width: 100%; /* Full width of the parent */
+      overflow: hidden; /* Hide overflow */
+    }
+
+    .carousel-images {
+      display: flex;
+      transition: transform 0.5s ease;
+    }
+
+    .carousel-image {
+      width: 33.33%; /* Each image takes one-third of the width */
+      height: auto; /* Maintain aspect ratio */
+      object-fit: cover; /* Cover the area nicely */
+    }
+
+    .carousel-buttons {
+      position: absolute;
+      top: 50%;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      transform: translateY(-50%);
+    }
+
+    .button {
+      background-color: rgba(255, 255, 255, 0.7);
+      border: none;
+      cursor: pointer;
+      font-size: 24px;
+      padding: 10px;
+    }
+
+    .button:focus {
+      outline: none;
+    }
+
+    /* Additional styling to keep layout consistent */
+    main.content {
+      padding: 20px; /* Add padding around the main content */
+    }
+
+    h2 {
+      text-align: center; /* Center the heading */
+      margin: 20px 0; /* Margin for spacing */
+    }
+
+    .button-container {
+      text-align: center; /* Center the button container */
+    }
+
+    .big-button {
+      background-color: #3498db;
+      color: white;
+      padding: 15px 30px;
+      text-decoration: none;
+      border-radius: 5px;
+      font-size: 18px;
+      transition: background-color 0.3s;
+    }
+
+    .big-button:hover {
+      background-color: #2980b9;
+    }
+  </style>
 </head>
 <body>
 
@@ -17,24 +89,33 @@
       <a href="{{ url_for('generated_qrs') }}">Generated QRs</a>
     </nav>
     <div class="user-info">
-    <div class="dropdown">
-        <button>{{ session['username'] }}</button>
+      <div class="dropdown">
+        <button>Details</button>
         <div class="dropdown-content">
-            <div class="details">
-                <span>Cards: {{ session['cards'] }}</span>
-                <span>Username: {{ session['username'] }}</span>
-            </div>
-            <a href="{{ url_for('logout') }}">Logout</a>
+          <div class="details">
+            <span>Cards: {{ session['cards'] }}</span>
+            <span>Username: {{ session['username'] }}</span>
+          </div>
+          <a href="{{ url_for('logout') }}">Logout</a>
         </div>
+      </div>
     </div>
-</div>
-
   </header>
 
   <main class="content">
-    <div class="banner">
-      <!-- Banner content can be added here -->
-      Your Banner Here
+    <div class="carousel">
+      <div class="carousel-images" id="carouselImages">
+        <img src="{{ url_for('static', filename='1.png') }}" class="carousel-image" alt="Banner 1">
+        <img src="{{ url_for('static', filename='2.png') }}" class="carousel-image" alt="Banner 2">
+        <img src="{{ url_for('static', filename='3.png') }}" class="carousel-image" alt="Banner 3">
+        <img src="{{ url_for('static', filename='1.png') }}" class="carousel-image" alt="Banner 1"> <!-- Repeat images for continuous scroll -->
+        <img src="{{ url_for('static', filename='2.png') }}" class="carousel-image" alt="Banner 2">
+        <img src="{{ url_for('static', filename='3.png') }}" class="carousel-image" alt="Banner 3">
+      </div>
+      <div class="carousel-buttons">
+        <button class="button" onclick="prevSlide()">&#10094;</button>
+        <button class="button" onclick="nextSlide()">&#10095;</button>
+      </div>
     </div>
 
     <h2>Explore Food Counters</h2>
@@ -43,6 +124,35 @@
       <a href="{{ url_for('commondininghall') }}" class="big-button">Common Dining Hall</a>
     </div>
   </main>
+
+  <script>
+    let currentIndex = 0;
+
+    function showSlide(index) {
+      const slides = document.querySelectorAll('.carousel-image');
+      const totalSlides = slides.length;
+      if (index >= totalSlides) {
+        currentIndex = 0; // Loop back to the start
+      } else if (index < 0) {
+        currentIndex = totalSlides - 1; // Loop to the end
+      } else {
+        currentIndex = index;
+      }
+      const offset = -currentIndex * 33.33; // Move by one-third of the width
+      document.getElementById('carouselImages').style.transform = `translateX(${offset}%)`;
+    }
+
+    function nextSlide() {
+      showSlide(currentIndex + 1);
+    }
+
+    function prevSlide() {
+      showSlide(currentIndex - 1);
+    }
+
+    // Optional: Auto slide every 5 seconds
+    setInterval(nextSlide, 5000);
+  </script>
 
 </body>
 </html>
