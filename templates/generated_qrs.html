@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generated QRs</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='studentdashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='generated_qrs.css') }}">
+</head>
+<body>
+
+<header class="header">
+    <nav>
+        <a href="{{ url_for('home') }}">Home</a>
+        <a href="#">Card History</a>
+        <a href="#">Card Registration</a>
+        <a href="{{ url_for('generated_qrs') }}">Generated QRs</a>
+    </nav>
+    <div class="user-info">
+        <div class="dropdown">
+            <button>{{ session['username'] }}</button>
+            <div class="dropdown-content">
+                <div class="details">
+                    <span>Cards: {{ session['cards'] }}</span>
+                    <span>Username: {{ session['username'] }}</span>
+                </div>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="content">
+    <h1>Generated QR Codes</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Meal</th>
+                <th>QR Code</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if qr_codes %}
+                {% for qr_code in qr_codes %}
+                    <tr>
+                        <td>{{ qr_code.date }}</td>
+                        <td>{{ qr_code.meal_type | capitalize }}</td>
+                        <td>
+                            <a href="#" class="qr-link" onclick="openModal('{{ qr_code.qrcode | b64encode }}')">View QR</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="3">No QR codes generated yet.</td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</main>
+
+<!-- Modal for displaying the QR code -->
+<div id="qrModal" class="modal">
+    <span class="close" onclick="closeModal()">&times;</span>
+    <img class="modal-content" id="modalImage" alt="QR Code" style="width: 100%; max-width: 500px;">
+</div>
+
+<script>
+    // Function to open the modal with the QR code
+    function openModal(qrCodeBase64) {
+        document.getElementById('modalImage').src = 'data:image/png;base64,' + qrCodeBase64;
+        document.getElementById('qrModal').style.display = 'flex'; // Show modal
+    }
+
+    // Function to close the modal
+    function closeModal() {
+        document.getElementById('qrModal').style.display = 'none'; // Hide modal
+    }
+</script>
+
+</body>
+</html>

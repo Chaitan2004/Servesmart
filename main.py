@@ -3,6 +3,8 @@ from flask_sqlalchemy import SQLAlchemy
 import segno
 import uuid
 import os
+import datetime
+import base64
 from io import BytesIO
 
 app = Flask(__name__)
@@ -18,7 +20,23 @@ class users(db.Model):
     username = db.Column(db.String(100), nullable=False)
     password = db.Column(db.String(100), unique=True, nullable=False)
     type = db.Column(db.String(9), unique=False, nullable=False)
-    qrcode = db.Column(db.LargeBinary, nullable=False)  # Store image as binary (LONGBLOB)
+
+
+class Meals(db.Model):
+    __tablename__ = 'meals'
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), db.ForeignKey('users.username'), nullable=False, index=True)  # Indexed foreign key
+    qrcode = db.Column(db.LargeBinary, nullable=False)
+    meal_type = db.Column(db.String(50), nullable=False)  # e.g., "breakfast" or "dinner"
+    date = db.Column(db.Date, nullable=False, index=True)  # Index for efficient date filtering
+
+    user = db.relationship('users', backref=db.backref('meals', lazy=True))
+
+def b64encode(data):
+    return base64.b64encode(data).decode('utf-8')
+
+app.jinja_env.filters['b64encode'] = b64encode
 
 @app.route('/')
 def index():
@@ -85,32 +103,35 @@ def commondininghall():
 
 @app.route('/generate_qr', methods=['POST'])
 def generate_qr():
-    qr_generated = False
-    meal = None
+    meal_type = request.form.get('meal')  # e.g., "breakfast" or "dinner"
+    username = session.get('username')  # Use username from session
 
-    if request.method == 'POST':
-        meal = request.form.get('meal')
+    if meal_type and username:
+        # Generate a unique QR code
+        unique_id = str(uuid.uuid4())
+        qr = segno.make(unique_id)
+        img_buffer = BytesIO()
+        qr.save(img_buffer, kind='png', scale=10)  # Increase scale for higher resolution
+        img_binary = img_buffer.getvalue()
 
-        if meal:
-            # Generate unique identifier
-            unique_id = str(uuid.uuid4())
+        # Insert new meal record for the student
+        new_meal = Meals(username=username, qrcode=img_binary, meal_type=meal_type, date=datetime.date.today())
+        db.session.add(new_meal)
+        db.session.commit()
 
-            # Generate QR code using segno
-            qr = segno.make(unique_id)
+    return render_template('commondininghall.html', qr_generated=True, meal_type=meal_type)
 
-            # Save the QR code as PNG to BytesIO
-            img_buffer = BytesIO()
-            qr.save(img_buffer, kind='png')
-            img_binary = img_buffer.getvalue()
+@app.route('/generated_qrs')
+def generated_qrs():
+    if 'username' not in session:
+        return redirect(url_for('index'))
 
-            # Store unique ID, meal type, and image data in the database
-            new_qr = users(qrcode=img_binary)
-            db.session.add(new_qr)
-            db.session.commit()
+    # Fetch all generated QR codes for the logged-in user from the database
+    username = session['username']
+    qr_codes = Meals.query.filter_by(username=username).all()
 
-            qr_generated = True
+    return render_template('generated_qrs.html', qr_codes=qr_codes)
 
-    return render_template('commondininghall.html', qr_generated=qr_generated, meal=meal)
 
 
 if __name__ == '__main__':
