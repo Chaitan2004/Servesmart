@@ -1,11 +1,15 @@
-from flask import Flask, render_template, request, redirect, session, url_for, flash
+from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 import segno
 import uuid
 import os
-from datetime import datetime, timedelta, time
+from datetime import datetime, timedelta, time, date
 import base64
 from io import BytesIO
+import math
+import cv2
+import numpy as np
+from pyzbar.pyzbar import decode
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)  # Secret key for sessions
@@ -30,6 +34,9 @@ class Meals(db.Model):
     qrcode = db.Column(db.LargeBinary, nullable=False)
     meal_type = db.Column(db.String(50), nullable=False)  # e.g., "breakfast" or "dinner"
     date = db.Column(db.Date, nullable=False, index=True)  # Index for efficient date filtering
+    qr_id = db.Column(db.String(36), nullable=False, unique=True)  # UUID as a unique identifier
+    entry = db.Column(db.String(20), nullable=True)
+
 
     user = db.relationship('users', backref=db.backref('meals', lazy=True))
 
@@ -67,7 +74,7 @@ def submit():
 
 @app.route('/admin-dashboard')
 def admin_dashboard():
-    return "Welcome to the Admin Dashboard!"
+    return render_template('admindashboard.html')
 
 @app.route('/student-dashboard')
 def student_dashboard():
@@ -155,7 +162,7 @@ def generate_qr():
         qr.save(img_buffer, kind='png', scale=10)
         img_binary = img_buffer.getvalue()
 
-        new_meal = Meals(username=username, qrcode=img_binary, meal_type=meal, date=meal_date_obj)
+        new_meal = Meals(username=username, qrcode=img_binary, qr_id=unique_id, meal_type=meal, date=meal_date_obj)
         db.session.add(new_meal)
         db.session.commit()
 
@@ -175,6 +182,7 @@ def generate_qr():
 
     # Pass current date to avoid shrinking of date options on reload
     return render_template('commondininghall.html', qr_generated=qr_generated, meal=meal, current_date=current_time.date(), date_options=date_options)
+
 @app.route('/generated_qrs')
 def generated_qrs():
     if 'username' not in session:
@@ -186,7 +194,56 @@ def generated_qrs():
 
     return render_template('generated_qrs.html', qr_codes=qr_codes)
 
+@app.route('/scan_qr')
+def scan_qr():
+    # Check if the user is logged in
+    if 'username' not in session:
+        return redirect(url_for('index'))  # Redirect to login page if not logged in
+    # If logged in, render the QR scanner page
+    return render_template('scan_qr.html')  # Replace with your actual template name
+
+# Route for operators
+@app.route('/operators')
+def operators():
+    # Check if the user is logged in
+    if 'username' not in session:
+        return redirect(url_for('index'))  # Redirect to login page if not logged in
+    # If logged in, render the operators page
+    return render_template('operators.html')  # Replace with your actual template name
+
+# Route for meal details
+@app.route('/meal_details')
+def meal_details():
+    # Check if the user is logged in
+    if 'username' not in session:
+        return redirect(url_for('index'))  # Redirect to login page if not logged in
+    # If logged in, render the meal details page
+    return render_template('meal_details.html')
 
 
+@app.route('/validate_qr', methods=['POST'])
+def validate_qr():
+    data = request.get_json()
+    qr_uuid = data.get('qr_uuid')
+
+    # Validate UUID format
+    try:
+        uuid_obj = uuid.UUID(qr_uuid, version=4)  # Checks if it is a valid UUID v4
+    except ValueError:
+        return jsonify({"message": "Invalid QR code format."})
+
+    # Search for the UUID in the database
+    meal = Meals.query.filter_by(qr_id=str(uuid_obj)).first()
+    if meal:
+        if meal.entry == "filled":
+            return jsonify({"message": "This QR code has already been validated."}), 200
+        else:
+            # If a meal is found, mark it as "filled"
+            meal.entry = "filled"
+            db.session.commit()
+            return jsonify({"message": f"QR code validated for meal: {meal.meal_type} on {meal.date}"}), 200
+    else:
+
+        return jsonify({"message": "Invalid or unregistered QR code."}), 404
 if __name__ == '__main__':
     app.run(debug=True)

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='studentdashboard.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; font-family: 'Roboto', sans-serif; }
+    main.content { padding: 20px; }
+    h2 { text-align: center; margin: 20px 0; }
+    .button-container { text-align: center; margin: 20px 0; }
+    .big-button { background-color: #3498db; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-size: 18px; transition: background-color 0.3s; }
+    .big-button:hover { background-color: #2980b9; }
+    #scanner-container { display: flex; flex-direction: column; align-items: center; margin-top: 20px; }
+    video { width: 100%; max-width: 500px; border: 2px solid #3498db; border-radius: 5px; }
+    #result { margin-top: 10px; font-size: 18px; }
+        /* Styling for the video and result container */
+        #scanner-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        /* Popup modal styling */
+        #popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            width: 300px;
+            text-align: center;
+        }
+
+        /* Overlay styling for modal background */
+        #overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        /* Close button styling */
+        #close-btn {
+            margin-top: 10px;
+            padding: 5px 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <nav>
+      <a href="{{ url_for('scan_qr') }}">Scan QR</a>
+      <a href="{{ url_for('operators') }}">Operators</a>
+      <a href="{{ url_for('meal_details') }}">Meal Details</a>
+    </nav>
+    <div class="user-info">
+      <div class="dropdown">
+        <button>Details</button>
+        <div class="dropdown-content">
+          <div class="details">
+            <span>Username: {{ session['username'] }}</span>
+          </div>
+          <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="content">
+    <div id="scanner-container">
+      <video id="video" autoplay></video>
+      <div id="result">Scan a QR code</div>
+    </div>
+  </main>
+
+
+<!-- Overlay for popup -->
+<div id="overlay"></div>
+
+<!-- Popup modal for displaying messages -->
+<div id="popup">
+    <p id="popup-message"></p>
+    <button id="close-btn" onclick="closePopup()">Close</button>
+</div>
+
+<script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
+<script>
+    const video = document.getElementById('video');
+    const result = document.getElementById('result');
+    const popup = document.getElementById('popup');
+    const popupMessage = document.getElementById('popup-message');
+    const overlay = document.getElementById('overlay');
+
+    // Function to open the popup with a specific message
+    function openPopup(message) {
+        popupMessage.textContent = message;
+        popup.style.display = 'block';
+        overlay.style.display = 'block';
+    }
+
+    // Function to close the popup
+    function closePopup() {
+        popup.style.display = 'none';
+        overlay.style.display = 'none';
+    }
+
+    // Access the camera
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+        .then((stream) => {
+            video.srcObject = stream;
+            video.setAttribute("playsinline", true); // Required for iOS Safari
+            video.play();
+            requestAnimationFrame(tick);
+        })
+        .catch((error) => {
+            console.error('Error accessing camera:', error);
+            result.textContent = 'Camera access denied or unavailable.';
+        });
+
+    function tick() {
+        if (video.readyState === video.HAVE_ENOUGH_DATA) {
+            const canvas = document.createElement('canvas');
+            canvas.height = video.videoHeight;
+            canvas.width = video.videoWidth;
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, canvas.width, canvas.height);
+
+            if (code) {
+                // Display the decoded text in the QR code
+                result.textContent = `QR Code detected: ${code.data}`;
+
+                // Prepare data to send to the server
+                fetch('/validate_qr', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ qr_uuid: code.data })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Display result message
+                    result.textContent = data.message;
+
+                    // Show popup if the entry is marked as "fake"
+                    if (data.message.includes("fake")) {
+                        openPopup(data.message);
+                    } else {
+                        openPopup(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error validating QR code:', error);
+                    result.textContent = 'Error validating QR code.';
+                });
+            } else {
+                result.textContent = 'No QR code found';
+            }
+        }
+        requestAnimationFrame(tick);
+    }
+</script>
+
+</body>
+</html>
