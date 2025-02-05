@@ -9,7 +9,6 @@ ServeSmart is a mess management solution designed to address food preparation an
 - **QR Code Verification:** Admins can scan QR codes to confirm meal registrations.
 - **Real-Time Data Tracking:** Track the number of students registering for each meal.
 - **Admin Dashboard:** Comprehensive dashboard for monitoring meal registrations and managing user accounts.
-- **Scalability:** Designed to handle increasing user loads as the student population grows.
 
 ## Technologies Used
 
