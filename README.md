@@ -13,11 +13,11 @@ ServeSmart is a mess management solution designed to address food preparation an
 ## Technologies Used
 
 - **Frontend:** HTML, CSS, JavaScript
-- **Backend:** Python, Flask
+- **Backend:** Python, Flask, Celery (redis)
 - **Database:** MySQL
 - **QR Code Generation:** Segno
 - **Version Control:** Git, GitHub
-
+- **Containerization:** Docker
 ## Installation
 
 1. **Clone the repository:**
