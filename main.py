@@ -1,23 +1,26 @@
 from flask import Flask, render_template, request, redirect, session, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
-import segno
 import uuid
 import os
 from datetime import datetime, timedelta, time, date
 import base64
-from io import BytesIO
-import math
-import cv2
-import numpy as np
-from pyzbar.pyzbar import decode
+import redis
+redis_host = os.getenv('REDIS_HOST', 'redis')  # Default to 'redis' if not set
+redis_port = int(os.getenv('REDIS_PORT', 6379))
+
+r = redis.Redis(host=redis_host, port=redis_port, db=0)
+
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.urandom(24)  # Secret key for sessions
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://root:@localhost/servesmart'
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+mysqlconnector://root:@db/servesmart"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit
 
+# Initialize database
 db = SQLAlchemy(app)
+
 
 class users(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -44,6 +47,8 @@ def b64encode(data):
     return base64.b64encode(data).decode('utf-8')
 
 app.jinja_env.filters['b64encode'] = b64encode
+
+
 
 @app.route('/')
 def index():
@@ -111,8 +116,11 @@ def commondininghall():
         current_date + timedelta(days=2)
     ]
     return render_template('commondininghall.html', current_date=current_date, date_options=date_options)
+
+
 @app.route('/generate_qr', methods=['POST'])
 def generate_qr():
+    from tasks import generate_qr_task  # ✅ Lazy import here
     meal = request.form.get('meal')
     meal_date = request.form.get('meal_date')
     username = session.get('username')
@@ -154,24 +162,21 @@ def generate_qr():
         flash("You have already generated a QR code for this meal on the selected date.", "error")
         return redirect(url_for('commondininghall'))
 
-    # Proceed if within the allowed time and date
+
+
+    # Start Celery task for QR generation
     if meal and username:
-        unique_id = str(uuid.uuid4())
-        qr = segno.make(unique_id)
-        img_buffer = BytesIO()
-        qr.save(img_buffer, kind='png', scale=10)
-        img_binary = img_buffer.getvalue()
-
-        new_meal = Meals(username=username, qrcode=img_binary, qr_id=unique_id, meal_type=meal, date=meal_date_obj)
-        db.session.add(new_meal)
-        db.session.commit()
-
+        meal_date_str = meal_date_obj.strftime("%Y-%m-%d")  # Convert date to string
+        print(f"Sending task with: {username}, {meal}, {meal_date_obj}")
+        generate_qr_task(username, meal, meal_date_str)
+        flash("Your QR is being generated in the background. Please check back later.", "success")
         qr_generated = True
         session['qr_generated'] = qr_generated
         session['meal'] = meal
 
-    # Clear session qr_generated status for fresh submission capability
     session.pop('qr_generated', None)
+
+
 
     current_date = datetime.today().date()
     date_options = [
@@ -180,7 +185,6 @@ def generate_qr():
         current_date + timedelta(days=2)
     ]
 
-    # Pass current date to avoid shrinking of date options on reload
     return render_template('commondininghall.html', qr_generated=qr_generated, meal=meal, current_date=current_time.date(), date_options=date_options)
 
 @app.route('/generated_qrs')
@@ -246,4 +250,4 @@ def validate_qr():
 
         return jsonify({"message": "Invalid or unregistered QR code."}), 404
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=8081, debug=True)
